@@ -1,17 +1,19 @@
-// Copyright (c) 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_devicelab/framework/apk_utils.dart';
 import 'package:flutter_devicelab/framework/framework.dart';
+import 'package:flutter_devicelab/framework/task_result.dart';
 import 'package:flutter_devicelab/framework/utils.dart';
 import 'package:path/path.dart' as path;
 
 final String gradlew = Platform.isWindows ? 'gradlew.bat' : 'gradlew';
-final String gradlewExecutable = Platform.isWindows ? gradlew : './$gradlew';
+final String gradlewExecutable = Platform.isWindows ? '.\\$gradlew' : './$gradlew';
+final String fileReadWriteMode = Platform.isWindows ? 'rw-rw-rw-' : 'rw-r--r--';
+final String platformLineSep = Platform.isWindows ? '\r\n': '\n';
 
 /// Tests that the Flutter module project template works and supports
 /// adding Flutter to an existing Android app.
@@ -37,13 +39,40 @@ Future<void> main() async {
         );
       });
 
-      section('Add plugins');
+      section('Add read-only asset');
+
+      final File readonlyTxtAssetFile = await File(path.join(
+        projectDir.path,
+        'assets',
+        'read-only.txt'
+      ))
+      .create(recursive: true);
+
+      if (!exists(readonlyTxtAssetFile)) {
+        return TaskResult.failure('Failed to create read-only asset');
+      }
+
+      if (!Platform.isWindows) {
+        await exec('chmod', <String>[
+          '444',
+          readonlyTxtAssetFile.path
+        ]);
+      }
 
       final File pubspec = File(path.join(projectDir.path, 'pubspec.yaml'));
       String content = await pubspec.readAsString();
       content = content.replaceFirst(
-        '\ndependencies:\n',
-        '\ndependencies:\n  device_info:\n  package_info:\n',
+        '$platformLineSep  # assets:$platformLineSep',
+        '$platformLineSep  assets:$platformLineSep    - assets/read-only.txt$platformLineSep',
+      );
+      await pubspec.writeAsString(content, flush: true);
+
+      section('Add plugins');
+
+      content = await pubspec.readAsString();
+      content = content.replaceFirst(
+        '${platformLineSep}dependencies:$platformLineSep',
+        '${platformLineSep}dependencies:$platformLineSep  device_info: 0.4.1$platformLineSep  package_info: 0.4.0+9$platformLineSep',
       );
       await pubspec.writeAsString(content, flush: true);
       await inDirectory(projectDir, () async {
@@ -143,7 +172,14 @@ Future<void> main() async {
       final Directory hostApp = Directory(path.join(tempDir.path, 'hello_host_app'));
       mkdir(hostApp);
       recursiveCopy(
-        Directory(path.join(flutterDirectory.path, 'dev', 'integration_tests', 'android_host_app')),
+        Directory(
+          path.join(
+            flutterDirectory.path,
+            'dev',
+            'integration_tests',
+            'android_host_app_v2_embedding',
+          ),
+        ),
         hostApp,
       );
       copy(
@@ -189,11 +225,10 @@ Future<void> main() async {
 
       section('Check files in debug APK');
 
-      checkItContains<String>(<String>[
-        'AndroidManifest.xml',
-        'assets/flutter_assets/isolate_snapshot_data',
-        'assets/flutter_assets/kernel_blob.bin',
-        'assets/flutter_assets/vm_snapshot_data',
+      checkCollectionContains<String>(<String>[
+        ...flutterAssets,
+        ...debugAssets,
+        ...baseApkFiles,
       ], await getFilesInApk(debugHostApk));
 
       section('Check debug AndroidManifest.xml');
@@ -204,18 +239,43 @@ Future<void> main() async {
             android:name="flutterProjectType"
             android:value="module" />''')
       ) {
-        return TaskResult.failure('Debug host APK doesn\'t contain metadata: flutterProjectType = module ');
+        return TaskResult.failure("Debug host APK doesn't contain metadata: flutterProjectType = module ");
       }
 
       final String analyticsOutput = analyticsOutputFile.readAsStringSync();
-      if (!analyticsOutput.contains('cd24: android-arm64')
+      if (!analyticsOutput.contains('cd24: android')
           || !analyticsOutput.contains('cd25: true')
-          || !analyticsOutput.contains('viewName: build/bundle')) {
+          || !analyticsOutput.contains('viewName: assemble')) {
         return TaskResult.failure(
-          'Building outer app produced the following analytics: "$analyticsOutput"'
-          'but not the expected strings: "cd24: android-arm64", "cd25: true" and '
-          '"viewName: build/bundle"'
+          'Building outer app produced the following analytics: "$analyticsOutput" '
+          'but not the expected strings: "cd24: android", "cd25: true" and '
+          '"viewName: assemble"'
         );
+      }
+
+      section('Check file access modes for read-only asset from Flutter module');
+
+      final String readonlyDebugAssetFilePath = path.joinAll(<String>[
+        hostApp.path,
+        'app',
+        'build',
+        'intermediates',
+        'merged_assets',
+        'debug',
+        'out',
+        'flutter_assets',
+        'assets',
+        'read-only.txt',
+      ]);
+      final File readonlyDebugAssetFile = File(readonlyDebugAssetFilePath);
+      if (!exists(readonlyDebugAssetFile)) {
+        return TaskResult.failure('Failed to copy read-only asset file');
+      }
+
+      String modes = readonlyDebugAssetFile.statSync().modeString();
+      print('\nread-only.txt file access modes = $modes');
+      if (modes != null && modes.compareTo(fileReadWriteMode) != 0) {
+        return TaskResult.failure('Failed to make assets user-readable and writable');
       }
 
       section('Build release host APK');
@@ -245,8 +305,9 @@ Future<void> main() async {
 
       section('Check files in release APK');
 
-      checkItContains<String>(<String>[
-        'AndroidManifest.xml',
+      checkCollectionContains<String>(<String>[
+        ...flutterAssets,
+        ...baseApkFiles,
         'lib/arm64-v8a/libapp.so',
         'lib/arm64-v8a/libflutter.so',
         'lib/armeabi-v7a/libapp.so',
@@ -261,8 +322,34 @@ Future<void> main() async {
             android:name="flutterProjectType"
             android:value="module" />''')
       ) {
-        return TaskResult.failure('Release host APK doesn\'t contain metadata: flutterProjectType = module ');
+        return TaskResult.failure("Release host APK doesn't contain metadata: flutterProjectType = module ");
       }
+
+      section('Check file access modes for read-only asset from Flutter module');
+
+      final String readonlyReleaseAssetFilePath = path.joinAll(<String>[
+        hostApp.path,
+        'app',
+        'build',
+        'intermediates',
+        'merged_assets',
+        'release',
+        'out',
+        'flutter_assets',
+        'assets',
+        'read-only.txt',
+      ]);
+      final File readonlyReleaseAssetFile = File(readonlyReleaseAssetFilePath);
+      if (!exists(readonlyReleaseAssetFile)) {
+        return TaskResult.failure('Failed to copy read-only asset file');
+      }
+
+      modes = readonlyReleaseAssetFile.statSync().modeString();
+      print('\nread-only.txt file access modes = $modes');
+      if (modes != null && modes.compareTo(fileReadWriteMode) != 0) {
+        return TaskResult.failure('Failed to make assets user-readable and writable');
+      }
+
       return TaskResult.success(null);
     } on TaskResult catch (taskResult) {
       return taskResult;

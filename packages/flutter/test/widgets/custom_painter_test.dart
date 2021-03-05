@@ -1,8 +1,7 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -372,9 +371,9 @@ void _defineTests() {
     expect(semantics, hasSemantics(expectedSemantics, ignoreRect: true, ignoreTransform: true));
 
     // Do the actions work?
-    final SemanticsOwner semanticsOwner = tester.binding.pipelineOwner.semanticsOwner;
+    final SemanticsOwner semanticsOwner = tester.binding.pipelineOwner.semanticsOwner!;
     int expectedLength = 1;
-    for (SemanticsAction action in allActions) {
+    for (final SemanticsAction action in allActions) {
       switch (action) {
         case SemanticsAction.moveCursorBackwardByCharacter:
         case SemanticsAction.moveCursorForwardByCharacter:
@@ -397,7 +396,7 @@ void _defineTests() {
     }
 
     semantics.dispose();
-  });
+  }, skip: true); // disable for soft transition https://github.com/flutter/flutter/issues/77271
 
   testWidgets('Supports all flags', (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
@@ -413,9 +412,12 @@ void _defineTests() {
             selected: true,
             hidden: true,
             button: true,
+            slider: true,
+            link: true,
             textField: true,
             readOnly: true,
             focused: true,
+            focusable: true,
             inMutuallyExclusiveGroup: true,
             header: true,
             obscured: true,
@@ -461,9 +463,12 @@ void _defineTests() {
             selected: true,
             hidden: true,
             button: true,
+            slider: true,
+            link: true,
             textField: true,
             readOnly: true,
             focused: true,
+            focusable: true,
             inMutuallyExclusiveGroup: true,
             header: true,
             obscured: true,
@@ -480,7 +485,6 @@ void _defineTests() {
     // [SemanticsFlag.hasImplicitScrolling] isn't part of [SemanticsProperties]
     // therefore it has to be removed.
     flags.remove(SemanticsFlag.hasImplicitScrolling);
-
     expectedSemantics = TestSemantics.root(
       children: <TestSemantics>[
         TestSemantics.rootChild(
@@ -497,7 +501,7 @@ void _defineTests() {
     );
     expect(semantics, hasSemantics(expectedSemantics, ignoreRect: true, ignoreTransform: true));
     semantics.dispose();
-  }, skip: isBrowser);
+  });
 
   group('diffing', () {
     testWidgets('complains about duplicate keys', (WidgetTester tester) async {
@@ -704,25 +708,21 @@ class _DiffTester {
   ///
   /// - checks that initial and final configurations are in the desired states.
   /// - checks that keyed nodes have stable IDs.
-  Future<void> diff({ List<String> from, List<String> to }) async {
+  Future<void> diff({ required List<String> from, required List<String> to }) async {
     final SemanticsTester semanticsTester = SemanticsTester(tester);
 
     TestSemantics createExpectations(List<String> labels) {
-      final List<TestSemantics> children = <TestSemantics>[];
-      for (String label in labels) {
-        children.add(
-          TestSemantics(
-            rect: const Rect.fromLTRB(1.0, 1.0, 2.0, 2.0),
-            label: label,
-          ),
-        );
-      }
-
       return TestSemantics.root(
         children: <TestSemantics>[
           TestSemantics.rootChild(
             rect: TestSemantics.fullScreen,
-            children: children,
+            children: <TestSemantics>[
+              for (final String label in labels)
+                TestSemantics(
+                  rect: const Rect.fromLTRB(1.0, 1.0, 2.0, 2.0),
+                  label: label,
+                ),
+            ],
           ),
         ],
       );
@@ -733,12 +733,12 @@ class _DiffTester {
     ));
     expect(semanticsTester, hasSemantics(createExpectations(from), ignoreId: true));
 
-    SemanticsNode root = RendererBinding.instance?.renderView?.debugSemantics;
+    SemanticsNode root = RendererBinding.instance!.renderView.debugSemantics!;
     final Map<Key, int> idAssignments = <Key, int>{};
     root.visitChildren((SemanticsNode firstChild) {
       firstChild.visitChildren((SemanticsNode node) {
         if (node.key != null) {
-          idAssignments[node.key] = node.id;
+          idAssignments[node.key!] = node.id;
         }
         return true;
       });
@@ -751,7 +751,7 @@ class _DiffTester {
     await tester.pumpAndSettle();
     expect(semanticsTester, hasSemantics(createExpectations(to), ignoreId: true));
 
-    root = RendererBinding.instance?.renderView?.debugSemantics;
+    root = RendererBinding.instance!.renderView.debugSemantics!;
     root.visitChildren((SemanticsNode firstChild) {
       firstChild.visitChildren((SemanticsNode node) {
         if (node.key != null && idAssignments[node.key] != null) {
@@ -784,8 +784,8 @@ class _SemanticsDiffTest extends CustomPainter {
 
   List<CustomPainterSemantics> buildSemantics(Size size) {
     final List<CustomPainterSemantics> semantics = <CustomPainterSemantics>[];
-    for (String label in data) {
-      Key key;
+    for (final String label in data) {
+      Key? key;
       if (label.endsWith('-k')) {
         key = ValueKey<String>(label);
       }
@@ -808,7 +808,7 @@ class _SemanticsDiffTest extends CustomPainter {
 }
 
 class _PainterWithSemantics extends CustomPainter {
-  _PainterWithSemantics({ this.semantics });
+  _PainterWithSemantics({ required this.semantics });
 
   final CustomPainterSemantics semantics;
 

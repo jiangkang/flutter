@@ -1,13 +1,11 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/widgets.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../rendering/mock_canvas.dart';
 import '../widgets/semantics_tester.dart';
 
 void main() {
@@ -41,6 +39,7 @@ void main() {
 
     await tester.tap(find.text('Go'));
     await tester.pump();
+    await tester.pump(const Duration(seconds: 5));
 
     expect(find.text('Action Sheet'), findsOneWidget);
 
@@ -77,14 +76,14 @@ void main() {
     );
 
     Brightness brightness = Brightness.light;
-    StateSetter stateSetter;
+    late StateSetter stateSetter;
 
     TextStyle actionTextStyle(String text) {
       return tester.widget<DefaultTextStyle>(
         find.descendant(
           of: find.widgetWithText(CupertinoActionSheetAction, text),
           matching: find.byType(DefaultTextStyle),
-        )
+        ),
       ).style;
     }
 
@@ -113,20 +112,16 @@ void main() {
     await tester.tap(find.text('Go'));
     await tester.pump();
 
-    // Draw the overlay using the light variant.
-    expect(find.byType(CupertinoActionSheet), paints..rect(color: const Color(0x66000000)));
     expect(
-      actionTextStyle('action').color.value,
+      actionTextStyle('action').color!.value,
       const Color.fromARGB(255, 0, 122, 255).value,
     );
 
     stateSetter(() { brightness = Brightness.dark; });
     await tester.pump();
 
-    // Draw the overlay using the dark variant.
-    expect(find.byType(CupertinoActionSheet), paints..rect(color: const Color(0x99000000)));
     expect(
-      actionTextStyle('action').color.value,
+      actionTextStyle('action').color!.value,
       const Color.fromARGB(255, 10, 132, 255).value,
     );
   });
@@ -318,7 +313,7 @@ void main() {
             ),
           );
         }),
-      )
+      ),
     );
 
     await tester.tap(find.text('Go'));
@@ -349,7 +344,7 @@ void main() {
 
   testWidgets('Content section is scrollable', (WidgetTester tester) async {
     final ScrollController messageScrollController = ScrollController();
-    double screenHeight;
+    late double screenHeight;
     await tester.pumpWidget(
       createAppWithButtonThatLaunchesActionSheet(
         Builder(builder: (BuildContext context) {
@@ -785,46 +780,46 @@ void main() {
     expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, 600.0);
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(470.0, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(470.0, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(374.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(374.3, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(337.1, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(337.1, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(325.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(325.3, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(320.8, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(320.8, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(319.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(319.3, epsilon: 0.1));
 
     // Action sheet has reached final height
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(319.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(319.3, epsilon: 0.1));
 
     // Exit animation
     await tester.tapAt(const Offset(20.0, 20.0));
     await tester.pump();
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(319.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(319.3, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(449.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(449.3, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(544.9, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(544.9, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(582.1, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(582.1, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(593.9, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(593.9, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(598.5, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(598.5, epsilon: 0.1));
 
     // Action sheet has disappeared
     await tester.pump(const Duration(milliseconds: 60));
@@ -862,23 +857,23 @@ void main() {
     expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, 600.0);
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(470.0, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(470.0, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(374.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(374.3, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(337.1, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(337.1, epsilon: 0.1));
 
     // Exit animation
     await tester.tapAt(const Offset(20.0, 20.0));
     await tester.pump(const Duration(milliseconds: 60));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(374.3, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(374.3, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, closeTo(470.0, 0.1));
+    expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, moreOrLessEquals(470.0, epsilon: 0.1));
 
     await tester.pump(const Duration(milliseconds: 60));
     expect(tester.getTopLeft(find.byType(CupertinoActionSheet)).dy, 600.0);
@@ -926,30 +921,52 @@ void main() {
             TestSemantics(
               children: <TestSemantics>[
                 TestSemantics(
-                  flags: <SemanticsFlag>[
-                    SemanticsFlag.scopesRoute,
-                    SemanticsFlag.namesRoute,
-                  ],
-                  label: 'Alert',
                   children: <TestSemantics>[
                     TestSemantics(
                       flags: <SemanticsFlag>[
-                        SemanticsFlag.hasImplicitScrolling,
+                        SemanticsFlag.scopesRoute,
+                        SemanticsFlag.namesRoute,
                       ],
+                      label: 'Alert',
                       children: <TestSemantics>[
                         TestSemantics(
-                          label: 'The title',
+                          flags: <SemanticsFlag>[
+                            SemanticsFlag.hasImplicitScrolling,
+                          ],
+                          children: <TestSemantics>[
+                            TestSemantics(
+                              label: 'The title',
+                            ),
+                            TestSemantics(
+                              label: 'The message',
+                            ),
+                          ],
                         ),
                         TestSemantics(
-                          label: 'The message',
+                          flags: <SemanticsFlag>[
+                            SemanticsFlag.hasImplicitScrolling,
+                          ],
+                          children: <TestSemantics>[
+                            TestSemantics(
+                              flags: <SemanticsFlag>[
+                                SemanticsFlag.isButton,
+                              ],
+                              actions: <SemanticsAction>[
+                                SemanticsAction.tap,
+                              ],
+                              label: 'One',
+                            ),
+                            TestSemantics(
+                              flags: <SemanticsFlag>[
+                                SemanticsFlag.isButton,
+                              ],
+                              actions: <SemanticsAction>[
+                                SemanticsAction.tap,
+                              ],
+                              label: 'Two',
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    TestSemantics(
-                      flags: <SemanticsFlag>[
-                        SemanticsFlag.hasImplicitScrolling,
-                      ],
-                      children: <TestSemantics>[
                         TestSemantics(
                           flags: <SemanticsFlag>[
                             SemanticsFlag.isButton,
@@ -957,29 +974,11 @@ void main() {
                           actions: <SemanticsAction>[
                             SemanticsAction.tap,
                           ],
-                          label: 'One',
-                        ),
-                        TestSemantics(
-                          flags: <SemanticsFlag>[
-                            SemanticsFlag.isButton,
-                          ],
-                          actions: <SemanticsAction>[
-                            SemanticsAction.tap,
-                          ],
-                          label: 'Two',
+                          label: 'Cancel',
                         ),
                       ],
                     ),
-                    TestSemantics(
-                      flags: <SemanticsFlag>[
-                        SemanticsFlag.isButton,
-                      ],
-                      actions: <SemanticsAction>[
-                        SemanticsAction.tap,
-                      ],
-                      label: 'Cancel',
-                    ),
-                  ],
+                  ]
                 ),
               ],
             ),
@@ -1002,7 +1001,7 @@ RenderBox findScrollableActionsSectionRenderBox(WidgetTester tester) {
     }),
   );
   assert(actionsSection is RenderBox);
-  return actionsSection;
+  return actionsSection as RenderBox;
 }
 
 Widget createAppWithButtonThatLaunchesActionSheet(Widget actionSheet) {

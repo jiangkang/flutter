@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -8,7 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 
 class TestStatefulWidget extends StatefulWidget {
-  const TestStatefulWidget({ Key key }) : super(key: key);
+  const TestStatefulWidget({ Key? key }) : super(key: key);
 
   @override
   TestStatefulWidgetState createState() => TestStatefulWidgetState();
@@ -20,7 +20,7 @@ class TestStatefulWidgetState extends State<TestStatefulWidget> {
 }
 
 class TestChildWidget extends StatefulWidget {
-  const TestChildWidget({ Key key }) : super(key: key);
+  const TestChildWidget({ Key? key }) : super(key: key);
 
   @override
   TestChildState createState() => TestChildState();
@@ -875,7 +875,7 @@ void main() {
       ),
     );
     await tester.pumpWidget(table);
-    final RenderObjectElement element = key0.currentContext;
+    final RenderObjectElement element = key0.currentContext! as RenderObjectElement;
     expect(element, hasAGoodToStringDeep);
     expect(
       element.toStringDeep(minLevel: DiagnosticLevel.info),
@@ -927,8 +927,42 @@ void main() {
 
       // Should not crash.
       expect(find.text('CRASHHH'), findsOneWidget);
-    }
+    },
   );
+
+  testWidgets('Table widget - Default textBaseline is null', (WidgetTester tester) async {
+    expect(
+      () => Table(defaultVerticalAlignment: TableCellVerticalAlignment.baseline),
+      throwsA(
+        isAssertionError
+          .having((AssertionError error) => error.message, 'exception message', contains('baseline')),
+      ),
+    );
+  });
+
+  testWidgets(
+    'Table widget requires all TableRows to have non-null children',
+    (WidgetTester tester) async {
+      FlutterError? error;
+      try {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Table(
+              children: const <TableRow>[
+                TableRow(children: <Widget>[Text('Some Text')]),
+                TableRow(),
+              ],
+            ),
+          ),
+        );
+      } on FlutterError catch (e) {
+        error = e;
+      } finally {
+        expect(error, isNotNull);
+        expect(error!.toStringDeep(), contains('The children property of TableRow must not be null.'));
+      }
+  });
 
   // TODO(ianh): Test handling of TableCell object
 }

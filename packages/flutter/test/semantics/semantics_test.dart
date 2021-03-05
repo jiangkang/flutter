@@ -1,14 +1,12 @@
-// Copyright 2017 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:flutter/rendering.dart';
-import 'package:flutter/semantics.dart';
 import 'package:vector_math/vector_math_64.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../rendering/rendering_tester.dart';
-
 
 void main() {
   setUp(() {
@@ -30,7 +28,7 @@ void main() {
       expect(node.isTagged(tag1), isTrue);
       expect(node.isTagged(tag2), isFalse);
 
-      node.tags.add(tag2);
+      node.tags!.add(tag2);
       expect(node.isTagged(tag1), isTrue);
       expect(node.isTagged(tag2), isTrue);
     });
@@ -74,51 +72,50 @@ void main() {
       final List<SemanticsNode> children = <SemanticsNode>[
         SemanticsNode()
           ..isMergedIntoParent = true
-          ..rect = const Rect.fromLTRB(5.0, 5.0, 10.0, 10.0)
+          ..rect = const Rect.fromLTRB(5.0, 5.0, 10.0, 10.0),
       ];
 
       node.updateWith(
         config: config,
-        childrenInInversePaintOrder: children
+        childrenInInversePaintOrder: children,
       );
 
-      children.add( SemanticsNode()
+      children.add(SemanticsNode()
         ..isMergedIntoParent = true
         ..rect = const Rect.fromLTRB(42.0, 42.0, 10.0, 10.0)
       );
 
       {
-        FlutterError error;
+        late FlutterError error;
         try {
           node.updateWith(
             config: config,
-            childrenInInversePaintOrder: children
+            childrenInInversePaintOrder: children,
           );
         } on FlutterError catch (e) {
           error = e;
         }
-        expect(error, isNotNull);
         expect(error.toString(), equalsIgnoringHashCodes(
           'Failed to replace child semantics nodes because the list of `SemanticsNode`s was mutated.\n'
           'Instead of mutating the existing list, create a new list containing the desired `SemanticsNode`s.\n'
           'Error details:\n'
-          'The list\'s length has changed from 1 to 2.'
+          "The list's length has changed from 1 to 2."
         ));
         expect(
           error.diagnostics.singleWhere((DiagnosticsNode node) => node.level == DiagnosticLevel.hint).toString(),
-          'Instead of mutating the existing list, create a new list containing the desired `SemanticsNode`s.'
+          'Instead of mutating the existing list, create a new list containing the desired `SemanticsNode`s.',
         );
       }
 
       {
-        FlutterError error;
+        late FlutterError error;
         final List<SemanticsNode> modifiedChildren = <SemanticsNode>[
           SemanticsNode()
             ..isMergedIntoParent = true
             ..rect = const Rect.fromLTRB(5.0, 5.0, 10.0, 10.0),
           SemanticsNode()
             ..isMergedIntoParent = true
-            ..rect = const Rect.fromLTRB(10.0, 10.0, 20.0, 20.0)
+            ..rect = const Rect.fromLTRB(10.0, 10.0, 20.0, 20.0),
         ];
         node.updateWith(
           config: config,
@@ -133,12 +130,11 @@ void main() {
             ..rect = const Rect.fromLTRB(40.0, 14.0, 20.0, 20.0);
           node.updateWith(
             config: config,
-            childrenInInversePaintOrder: modifiedChildren
+            childrenInInversePaintOrder: modifiedChildren,
           );
         } on FlutterError catch (e) {
           error = e;
         }
-        expect(error, isNotNull);
         expect(error.toStringDeep(), equalsIgnoringHashCodes(
           'FlutterError\n'
           '   Failed to replace child semantics nodes because the list of\n'
@@ -157,7 +153,7 @@ void main() {
 
         expect(
           error.diagnostics.singleWhere((DiagnosticsNode node) => node.level == DiagnosticLevel.hint).toString(),
-          'Instead of mutating the existing list, create a new list containing the desired `SemanticsNode`s.'
+          'Instead of mutating the existing list, create a new list containing the desired `SemanticsNode`s.',
         );
         // Two previous children and two new children.
         expect(error.diagnostics.where((DiagnosticsNode node) => node.value is SemanticsNode).length, 4);
@@ -193,7 +189,7 @@ void main() {
       pumpFrame(phase: EnginePhase.flushSemantics);
 
       int expectedActions = SemanticsAction.tap.index | SemanticsAction.longPress.index | SemanticsAction.scrollLeft.index | SemanticsAction.scrollRight.index;
-      expect(root.debugSemantics.getSemanticsData().actions, expectedActions);
+      expect(root.debugSemantics!.getSemanticsData().actions, expectedActions);
 
       middle
         ..hasScrollLeftAction = false
@@ -203,7 +199,7 @@ void main() {
       pumpFrame(phase: EnginePhase.flushSemantics);
 
       expectedActions = SemanticsAction.tap.index | SemanticsAction.longPress.index | SemanticsAction.scrollDown.index | SemanticsAction.scrollRight.index;
-      expect(root.debugSemantics.getSemanticsData().actions, expectedActions);
+      expect(root.debugSemantics!.getSemanticsData().actions, expectedActions);
     });
   });
 
@@ -247,42 +243,54 @@ void main() {
     expect(() {
       const OrdinalSortKey(0.0).compareTo(const CustomSortKey(0.0));
     }, throwsAssertionError);
-
-    // Different names.
-    expect(() {
-      const OrdinalSortKey(0.0, name: 'a').compareTo(const OrdinalSortKey(0.0, name: 'b'));
-    }, throwsAssertionError);
   });
 
-  test('OrdinalSortKey compares correctly', () {
+  test('OrdinalSortKey compares correctly when names are the same', () {
     const List<List<SemanticsSortKey>> tests = <List<SemanticsSortKey>>[
       <SemanticsSortKey>[OrdinalSortKey(0.0), OrdinalSortKey(0.0)],
       <SemanticsSortKey>[OrdinalSortKey(0.0), OrdinalSortKey(1.0)],
       <SemanticsSortKey>[OrdinalSortKey(1.0), OrdinalSortKey(0.0)],
       <SemanticsSortKey>[OrdinalSortKey(1.0), OrdinalSortKey(1.0)],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'a'), OrdinalSortKey(0.0, name: 'a')],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'a'), OrdinalSortKey(1.0, name: 'a')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'a'), OrdinalSortKey(0.0, name: 'a')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'a'), OrdinalSortKey(1.0, name: 'a')],
     ];
-    final List<int> expectedResults = <int>[0, -1, 1, 0];
+    final List<int> expectedResults = <int>[0, -1, 1, 0, 0, -1, 1, 0];
     assert(tests.length == expectedResults.length);
-    final List<int> results = <int>[];
-    for (List<SemanticsSortKey> tuple in tests) {
-      results.add(tuple[0].compareTo(tuple[1]));
-    }
+    final List<int> results = <int>[
+      for (final List<SemanticsSortKey> tuple in tests) tuple[0].compareTo(tuple[1]),
+    ];
     expect(results, orderedEquals(expectedResults));
+
+    // Differing types should throw an assertion.
+    expect(() => const OrdinalSortKey(0.0).compareTo(const CustomSortKey(0.0)), throwsAssertionError);
   });
 
-  test('OrdinalSortKey compares correctly', () {
+  test('OrdinalSortKey compares correctly when the names are different', () {
     const List<List<SemanticsSortKey>> tests = <List<SemanticsSortKey>>[
-      <SemanticsSortKey>[OrdinalSortKey(0.0), OrdinalSortKey(0.0)],
-      <SemanticsSortKey>[OrdinalSortKey(0.0), OrdinalSortKey(1.0)],
-      <SemanticsSortKey>[OrdinalSortKey(1.0), OrdinalSortKey(0.0)],
-      <SemanticsSortKey>[OrdinalSortKey(1.0), OrdinalSortKey(1.0)],
+      <SemanticsSortKey>[OrdinalSortKey(0.0), OrdinalSortKey(0.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(0.0), OrdinalSortKey(1.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0), OrdinalSortKey(0.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0), OrdinalSortKey(1.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'foo'), OrdinalSortKey(0.0)],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'foo'), OrdinalSortKey(1.0)],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'foo'), OrdinalSortKey(0.0)],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'foo'), OrdinalSortKey(1.0)],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'foo'), OrdinalSortKey(0.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'foo'), OrdinalSortKey(1.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'foo'), OrdinalSortKey(0.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'foo'), OrdinalSortKey(1.0, name: 'bar')],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'bar'), OrdinalSortKey(0.0, name: 'foo')],
+      <SemanticsSortKey>[OrdinalSortKey(0.0, name: 'bar'), OrdinalSortKey(1.0, name: 'foo')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'bar'), OrdinalSortKey(0.0, name: 'foo')],
+      <SemanticsSortKey>[OrdinalSortKey(1.0, name: 'bar'), OrdinalSortKey(1.0, name: 'foo')],
     ];
-    final List<int> expectedResults = <int>[0, -1, 1, 0];
+    final List<int> expectedResults = <int>[ -1, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1];
     assert(tests.length == expectedResults.length);
-    final List<int> results = <int>[];
-    for (List<SemanticsSortKey> tuple in tests) {
-      results.add(tuple[0].compareTo(tuple[1]));
-    }
+    final List<int> results = <int>[
+      for (final List<SemanticsSortKey> tuple in tests) tuple[0].compareTo(tuple[1]),
+    ];
     expect(results, orderedEquals(expectedResults));
   });
 
@@ -449,6 +457,8 @@ void main() {
       '   textDirection: null\n'
       '   sortKey: null\n'
       '   platformViewId: null\n'
+      '   maxValueLength: null\n'
+      '   currentValueLength: null\n'
       '   scrollChildren: null\n'
       '   scrollIndex: null\n'
       '   scrollExtentMin: null\n'
@@ -545,6 +555,8 @@ void main() {
       '   textDirection: null\n'
       '   sortKey: null\n'
       '   platformViewId: null\n'
+      '   maxValueLength: null\n'
+      '   currentValueLength: null\n'
       '   scrollChildren: null\n'
       '   scrollIndex: null\n'
       '   scrollExtentMin: null\n'
@@ -571,6 +583,7 @@ void main() {
 
     expect(config.isSemanticBoundary, isFalse);
     expect(config.isButton, isFalse);
+    expect(config.isLink, isFalse);
     expect(config.isMergingSemanticsOfDescendants, isFalse);
     expect(config.isEnabled, null);
     expect(config.isChecked, null);
@@ -594,6 +607,7 @@ void main() {
 
     config.isSemanticBoundary = true;
     config.isButton = true;
+    config.isLink = true;
     config.isMergingSemanticsOfDescendants = true;
     config.isEnabled = true;
     config.isChecked = true;
@@ -630,6 +644,7 @@ void main() {
 
     expect(config.isSemanticBoundary, isTrue);
     expect(config.isButton, isTrue);
+    expect(config.isLink, isTrue);
     expect(config.isMergingSemanticsOfDescendants, isTrue);
     expect(config.isEnabled, isTrue);
     expect(config.isChecked, isTrue);
@@ -662,8 +677,8 @@ class TestRender extends RenderProxyBox {
     this.hasScrollRightAction = false,
     this.hasScrollUpAction = false,
     this.hasScrollDownAction = false,
-    this.isSemanticBoundary,
-    RenderObject child,
+    this.isSemanticBoundary = false,
+    RenderBox? child,
   }) : super(child);
 
   bool hasTapAction;
@@ -673,7 +688,6 @@ class TestRender extends RenderProxyBox {
   bool hasScrollUpAction;
   bool hasScrollDownAction;
   bool isSemanticBoundary;
-
 
   @override
   void describeSemanticsConfiguration(SemanticsConfiguration config) {
@@ -696,5 +710,5 @@ class TestRender extends RenderProxyBox {
 }
 
 class CustomSortKey extends OrdinalSortKey {
-  const CustomSortKey(double order, {String name}) : super(order, name: name);
+  const CustomSortKey(double order, {String? name}) : super(order, name: name);
 }

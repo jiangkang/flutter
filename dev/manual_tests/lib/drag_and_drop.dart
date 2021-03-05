@@ -1,4 +1,4 @@
-// Copyright 2015 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -7,6 +7,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ExampleDragTarget extends StatefulWidget {
+  const ExampleDragTarget({Key key}) : super(key: key);
+
   @override
   ExampleDragTargetState createState() => ExampleDragTargetState();
 }
@@ -98,7 +100,7 @@ class ExampleDragSource extends StatelessWidget {
       size *= kHeavyMultiplier;
 
     final Widget contents = DefaultTextStyle(
-      style: Theme.of(context).textTheme.body1,
+      style: Theme.of(context).textTheme.bodyText2,
       textAlign: TextAlign.center,
       child: Dot(
         color: color,
@@ -174,7 +176,7 @@ class DashOutlineCirclePainter extends CustomPainter {
 }
 
 class MovableBall extends StatelessWidget {
-  const MovableBall(this.position, this.ballPosition, this.callback);
+  const MovableBall(this.position, this.ballPosition, this.callback, {Key key}) : super(key: key);
 
   final int position;
   final int ballPosition;
@@ -186,7 +188,7 @@ class MovableBall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget ball = DefaultTextStyle(
-      style: Theme.of(context).primaryTextTheme.body1,
+      style: Theme.of(context).primaryTextTheme.bodyText2,
       textAlign: TextAlign.center,
       child: Dot(
         key: kBallKey,
@@ -196,10 +198,10 @@ class MovableBall extends StatelessWidget {
         child: const Center(child: Text('BALL')),
       ),
     );
-    final Widget dashedBall = Container(
+    const Widget dashedBall = SizedBox(
       width: kBallSize,
       height: kBallSize,
-      child: const CustomPaint(
+      child: CustomPaint(
         painter: DashOutlineCirclePainter()
       ),
     );
@@ -223,6 +225,8 @@ class MovableBall extends StatelessWidget {
 }
 
 class DragAndDropApp extends StatefulWidget {
+  const DragAndDropApp({Key key}) : super(key: key);
+
   @override
   DragAndDropAppState createState() => DragAndDropAppState();
 }
@@ -270,7 +274,7 @@ class DragAndDropAppState extends State<DragAndDropApp> {
           ),
           Expanded(
             child: Row(
-              children: <Widget>[
+              children: const <Widget>[
                 Expanded(child: ExampleDragTarget()),
                 Expanded(child: ExampleDragTarget()),
                 Expanded(child: ExampleDragTarget()),
@@ -295,7 +299,7 @@ class DragAndDropAppState extends State<DragAndDropApp> {
 }
 
 void main() {
-  runApp(MaterialApp(
+  runApp(const MaterialApp(
     title: 'Drag and Drop Flutter Demo',
     home: DragAndDropApp(),
   ));

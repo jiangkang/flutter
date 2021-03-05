@@ -1,4 +1,4 @@
-// Copyright 2016 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -59,12 +59,12 @@ void main() {
     );
 
     expect(value, equals(0.0));
-    await tester.tap(find.byKey(sliderKey));
+    await tester.tap(find.byKey(sliderKey), warnIfMissed: false);
     expect(value, equals(0.0));
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider does not move when tapped (RTL)', (WidgetTester tester) async {
@@ -95,12 +95,12 @@ void main() {
     );
 
     expect(value, equals(0.0));
-    await tester.tap(find.byKey(sliderKey));
+    await tester.tap(find.byKey(sliderKey), warnIfMissed: false);
     expect(value, equals(0.0));
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider calls onChangeStart once when interaction begins', (WidgetTester tester) async {
@@ -141,7 +141,7 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider calls onChangeEnd once after interaction has ended', (WidgetTester tester) async {
@@ -182,14 +182,14 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider moves when dragged (LTR)', (WidgetTester tester) async {
     final Key sliderKey = UniqueKey();
     double value = 0.0;
-    double startValue;
-    double endValue;
+    late double startValue;
+    late double endValue;
 
     await tester.pumpWidget(
       CupertinoApp(
@@ -236,14 +236,14 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider moves when dragged (RTL)', (WidgetTester tester) async {
     final Key sliderKey = UniqueKey();
     double value = 0.0;
-    double startValue;
-    double endValue;
+    late double startValue;
+    late double endValue;
 
     await tester.pumpWidget(
       CupertinoApp(
@@ -290,7 +290,7 @@ void main() {
     await tester.pump(); // No animation should start.
     // Check the transientCallbackCount before tearing down the widget to ensure
     // that no animation is running.
-    expect(SchedulerBinding.instance.transientCallbackCount, equals(0));
+    expect(SchedulerBinding.instance!.transientCallbackCount, equals(0));
   });
 
   testWidgets('Slider Semantics', (WidgetTester tester) async {
@@ -318,6 +318,7 @@ void main() {
             increasedValue: '60%',
             decreasedValue: '40%',
             textDirection: TextDirection.ltr,
+            flags: <SemanticsFlag>[SemanticsFlag.isSlider],
             actions: SemanticsAction.decrease.index | SemanticsAction.increase.index,
           ),
         ],
@@ -341,7 +342,14 @@ void main() {
     );
 
     expect(semantics, hasSemantics(
-      TestSemantics.root(),
+      TestSemantics.root(
+        children: <TestSemantics>[
+          TestSemantics(
+            id: 1,
+            flags: <SemanticsFlag>[SemanticsFlag.isSlider],
+          )
+        ],
+      ),
       ignoreRect: true,
       ignoreTransform: true,
     ));
@@ -365,6 +373,7 @@ void main() {
     );
 
     expect(tester.getSemantics(find.byType(CupertinoSlider)), matchesSemantics(
+      isSlider: true,
       hasIncreaseAction: true,
       hasDecreaseAction: true,
       value: '50%',
@@ -387,6 +396,7 @@ void main() {
     );
 
     expect(tester.getSemantics(find.byType(CupertinoSlider)), matchesSemantics(
+      isSlider: true,
       hasIncreaseAction: true,
       hasDecreaseAction: true,
       value: '60%',
@@ -412,7 +422,7 @@ void main() {
     expect(
       find.byType(CupertinoSlider),
       // First line it paints is blue.
-      paints..rrect(color: CupertinoColors.activeBlue),
+      paints..rrect(color: CupertinoColors.systemBlue.color),
     );
 
     await tester.pumpWidget(
@@ -426,9 +436,10 @@ void main() {
         ),
       ),
     );
+
     expect(
       find.byType(CupertinoSlider),
-      paints..rrect(color: CupertinoColors.activeOrange),
+      paints..rrect(color: CupertinoColors.systemBlue.darkColor),
     );
   });
 
@@ -447,7 +458,7 @@ void main() {
     );
     expect(
       find.byType(CupertinoSlider),
-      paints..rrect(color: CupertinoColors.activeGreen),
+      paints..rrect(color: CupertinoColors.systemGreen.darkColor),
     );
   });
 
@@ -552,6 +563,54 @@ void main() {
     expect(
       find.byType(CupertinoSlider),
       isNot(paints..rrect(color: _kSystemFill.color)),
+    );
+  });
+
+  testWidgets('Thumb color can be overridden', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: Center(
+          child: CupertinoSlider(
+            thumbColor: CupertinoColors.systemPurple,
+            onChanged: (double value) { },
+            value: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byType(CupertinoSlider),
+      paints
+      ..rrect()
+      ..rrect()
+      ..rrect()
+      ..rrect()
+      ..rrect()
+      ..rrect(color: CupertinoColors.systemPurple.color)
+    );
+
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: Center(
+          child: CupertinoSlider(
+            thumbColor: CupertinoColors.activeOrange,
+            onChanged: (double value) { },
+            value: 0,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+        find.byType(CupertinoSlider),
+        paints
+          ..rrect()
+          ..rrect()
+          ..rrect()
+          ..rrect()
+          ..rrect()
+          ..rrect(color: CupertinoColors.activeOrange.color)
     );
   });
 }

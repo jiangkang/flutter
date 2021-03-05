@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Flutter Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -50,7 +50,7 @@ void main() {
       'backgroundColor: Color(0xffffffff)',
       'elevation: 2.0',
       'shape: RoundedRectangleBorder(BorderSide(Color(0xff000000), 0.0, BorderStyle.none), BorderRadius.circular(2.0))',
-      'clipBehavior: Clip.antiAlias'
+      'clipBehavior: Clip.antiAlias',
     ]);
   });
 
@@ -167,7 +167,7 @@ void main() {
     expect(material.color, modalBackgroundColor);
   });
 
-  testWidgets('General bottom sheet parameters take priority over modal bottom sheet-specific parameters for peristent bottom sheets', (WidgetTester tester) async {
+  testWidgets('General bottom sheet parameters take priority over modal bottom sheet-specific parameters for persistent bottom sheets', (WidgetTester tester) async {
     const double modalElevation = 5.0;
     const double persistentElevation = 7.0;
     const Color modalBackgroundColor = Colors.yellow;
@@ -193,7 +193,7 @@ void main() {
     expect(material.color, persistentBackgroundColor);
   });
 
-  testWidgets('Modal bottom sheet-specific parameters don\'t apply to persistent bottom sheets', (WidgetTester tester) async {
+  testWidgets("Modal bottom sheet-specific parameters don't apply to persistent bottom sheets", (WidgetTester tester) async {
     const double modalElevation = 5.0;
     const Color modalBackgroundColor = Colors.yellow;
     const BottomSheetThemeData bottomSheetTheme = BottomSheetThemeData(
@@ -214,6 +214,73 @@ void main() {
     expect(material.elevation, 0);
     expect(material.color, null);
   });
+
+  testWidgets('Modal bottom sheets respond to theme changes', (WidgetTester tester) async {
+    const double lightElevation = 5.0;
+    const double darkElevation = 3.0;
+    const Color lightBackgroundColor = Colors.green;
+    const Color darkBackgroundColor = Colors.grey;
+
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData.light().copyWith(
+        bottomSheetTheme: const BottomSheetThemeData(
+          elevation: lightElevation,
+          backgroundColor: lightBackgroundColor,
+        ),
+      ),
+      darkTheme: ThemeData.dark().copyWith(
+        bottomSheetTheme: const BottomSheetThemeData(
+          elevation: darkElevation,
+          backgroundColor: darkBackgroundColor,
+        ),
+      ),
+      home: Scaffold(
+        body: Builder(
+          builder: (BuildContext context) {
+            return Column(
+              children: <Widget>[
+                RawMaterialButton(
+                  child: const Text('Show Modal'),
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return const Text('This is a modal bottom sheet.');
+                      },
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    ));
+    await tester.tap(find.text('Show Modal'));
+    await tester.pumpAndSettle();
+
+    final Material lightMaterial = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byType(Material),
+      ),
+    );
+    expect(lightMaterial.elevation, lightElevation);
+    expect(lightMaterial.color, lightBackgroundColor);
+
+    // Simulate the user changing to dark theme
+    tester.binding.window.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+
+    final Material darkMaterial = tester.widget<Material>(
+    find.descendant(
+      of: find.byType(BottomSheet),
+        matching: find.byType(Material),
+      ),
+    );
+    expect(darkMaterial.elevation, darkElevation);
+    expect(darkMaterial.color, darkBackgroundColor);
+  });
 }
 
 Widget bottomSheetWithElevations(BottomSheetThemeData bottomSheetTheme) {
@@ -230,10 +297,8 @@ Widget bottomSheetWithElevations(BottomSheetThemeData bottomSheetTheme) {
                     showModalBottomSheet<void>(
                       context: context,
                       builder: (BuildContext _) {
-                        return Container(
-                          child: const Text(
-                            'This is a modal bottom sheet.',
-                          ),
+                        return const Text(
+                          'This is a modal bottom sheet.',
                         );
                       },
                     );
@@ -245,10 +310,8 @@ Widget bottomSheetWithElevations(BottomSheetThemeData bottomSheetTheme) {
                     showBottomSheet<void>(
                       context: context,
                       builder: (BuildContext _) {
-                        return Container(
-                          child: const Text(
-                            'This is a persistent bottom sheet.',
-                          ),
+                        return const Text(
+                          'This is a persistent bottom sheet.',
                         );
                       },
                     );
